@@ -31,12 +31,7 @@ export const App: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (
-      !isDisabledInput &&
-      inputRef.current &&
-      loadingIds &&
-      errorMessage !== 'Unable to update a todo'
-    ) {
+    if (!isDisabledInput && inputRef.current && loadingIds) {
       inputRef.current.focus();
     }
   }, [isDisabledInput, loadingIds, errorMessage]);
