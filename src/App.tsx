@@ -31,10 +31,15 @@ export const App: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isDisabledInput && inputRef.current && loadingIds) {
+    if (
+      !isDisabledInput &&
+      inputRef.current &&
+      loadingIds &&
+      errorMessage !== 'Unable to update a todo'
+    ) {
       inputRef.current.focus();
     }
-  }, [isDisabledInput, loadingIds]);
+  }, [isDisabledInput, loadingIds, errorMessage]);
 
   useEffect(() => {
     todoService
@@ -135,15 +140,8 @@ export const App: React.FC = () => {
     }
   };
 
-  const [editingTodo, setEditingTodo] = useState<number | null>(null);
-
-  const handleEditTodo = (todoId: number | null) => {
-    setEditingTodo(todoId);
-  };
-
   const updateTodoTitle = async (updatedTodo: Todo, cur: string) => {
     setLoadingIds(prev => [...prev, updatedTodo.id]);
-    setEditingTodo(updatedTodo.id);
 
     try {
       const currentTodo = await todoService.updateTodo({
@@ -162,9 +160,9 @@ export const App: React.FC = () => {
     } catch (error) {
       setErrorMessage('Unable to update a todo');
       setTimeout(() => setErrorMessage(''), ERROR_DELAY);
+      throw error;
     } finally {
       setLoadingIds(loadingIds.filter(id => id !== updatedTodo.id));
-      setEditingTodo(null);
     }
   };
 
@@ -256,8 +254,6 @@ export const App: React.FC = () => {
               filter={filter}
               onUpdateCheckbox={updateTodoCheckbox}
               onUpdateTitle={updateTodoTitle}
-              editingTodo={editingTodo}
-              onEditTodo={handleEditTodo}
             />
 
             {creatingTodo !== null && (

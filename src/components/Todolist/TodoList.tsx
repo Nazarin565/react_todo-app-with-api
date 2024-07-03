@@ -13,8 +13,6 @@ type Props = {
   filter: SelectedFilter;
   onUpdateCheckbox: (updatedPost: Todo) => Promise<void>;
   onUpdateTitle: (updatedTodo: Todo, cur: string) => Promise<void>;
-  editingTodo: number | null;
-  onEditTodo: (todoId: number | null) => void;
 };
 
 export const TodoList: React.FC<Props> = ({
@@ -24,8 +22,6 @@ export const TodoList: React.FC<Props> = ({
   filter,
   onUpdateCheckbox,
   onUpdateTitle,
-  editingTodo,
-  onEditTodo,
 }) => {
   const filteredTodos = useMemo(() => {
     switch (filter) {
@@ -48,8 +44,6 @@ export const TodoList: React.FC<Props> = ({
         loadingIds={loadingIds}
         onUpdateCheckbox={onUpdateCheckbox}
         onUpdateTitle={onUpdateTitle}
-        editingTodo={editingTodo}
-        onEditTodo={onEditTodo}
       />
     </CSSTransition>
   ));

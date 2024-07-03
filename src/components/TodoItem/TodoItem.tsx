@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import cn from 'classnames';
 import { Todo } from '../../types/Todo';
 import { USER_ID } from '../../api/todos';
@@ -11,8 +11,6 @@ type Props = {
   loadingIds: number[];
   onUpdateCheckbox?: (updatedPost: Todo) => Promise<void>;
   onUpdateTitle?: (updatedTodo: Todo, cur: string) => Promise<void>;
-  editingTodo?: number | null;
-  onEditTodo?: (todoId: number | null) => void;
 };
 
 export const TodoItem: React.FC<Props> = ({
@@ -21,38 +19,47 @@ export const TodoItem: React.FC<Props> = ({
   loadingIds = [],
   onUpdateCheckbox = () => {},
   onUpdateTitle = async () => {},
-  editingTodo,
-  onEditTodo = () => {},
 }) => {
   const [currentTitle, setCurrentTitle] = useState(title);
+  const [editingTodo, setEditingTodo] = useState<boolean>(false);
 
   const formInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpdateTitle = (event: any) => {
+  useEffect(() => {
+    if (editingTodo && formInputRef.current) {
+      formInputRef.current.focus();
+    }
+  }, [editingTodo]);
+
+  const handleUpdateTitle = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!currentTitle) {
-      onDelete(id);
-      setCurrentTitle(title);
-      onEditTodo(null);
-    } else if (currentTitle !== title) {
-      onUpdateTitle(
-        { id, title, userId: USER_ID, completed },
-        currentTitle,
-      ).catch(() => {
-        if (editingTodo && formInputRef.current) {
-          formInputRef.current.focus();
-        }
-      });
-    }
+    const trimmedTitle = currentTitle.trim();
 
-    onEditTodo(null);
+    if (!trimmedTitle) {
+      onDelete(id);
+      setEditingTodo(false);
+    } else if (trimmedTitle === title) {
+      setEditingTodo(false);
+    } else {
+      setCurrentTitle(trimmedTitle);
+
+      try {
+        setEditingTodo(false);
+        await onUpdateTitle(
+          { id, title, userId: USER_ID, completed },
+          trimmedTitle,
+        );
+      } catch (error) {
+        setEditingTodo(true);
+      }
+    }
   };
 
   const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
       setCurrentTitle(title);
-      onEditTodo(null);
+      setEditingTodo(false);
     }
   };
 
@@ -74,8 +81,8 @@ export const TodoItem: React.FC<Props> = ({
           }
         />
       </label>
-      {editingTodo === id ? (
-        <form onSubmit={handleUpdateTitle}>
+      {editingTodo ? (
+        <form onSubmit={handleUpdateTitle} onBlur={handleUpdateTitle}>
           <input
             ref={formInputRef}
             data-cy="TodoTitleField"
@@ -85,7 +92,6 @@ export const TodoItem: React.FC<Props> = ({
             autoFocus
             value={currentTitle}
             onChange={event => setCurrentTitle(event.target.value)}
-            onBlur={handleUpdateTitle}
             onKeyUp={handleKeyUp}
           />
         </form>
@@ -94,7 +100,7 @@ export const TodoItem: React.FC<Props> = ({
           <span
             data-cy="TodoTitle"
             className="todo__title"
-            onDoubleClick={() => onEditTodo(id)}
+            onDoubleClick={() => setEditingTodo(true)}
           >
             {currentTitle}
           </span>
