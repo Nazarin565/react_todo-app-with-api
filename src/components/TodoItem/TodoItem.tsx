@@ -18,42 +18,52 @@ export const TodoItem: React.FC<Props> = ({
   onDelete = () => {},
   loadingIds = [],
   onUpdateCheckbox = () => {},
-  onUpdateTitle = async () => {},
+  onUpdateTitle = () => {},
 }) => {
   const [currentTitle, setCurrentTitle] = useState(title);
   const [editingTodo, setEditingTodo] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const formInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editingTodo && formInputRef.current) {
+    if (formInputRef.current) {
       formInputRef.current.focus();
     }
   }, [editingTodo]);
 
-  const handleUpdateTitle = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleUpdateTitle = async () => {
+    if (isSubmitted) {
+      return;
+    }
 
+    setIsSubmitted(true);
     const trimmedTitle = currentTitle.trim();
 
     if (!trimmedTitle) {
-      onDelete(id);
-      setEditingTodo(false);
-    } else if (trimmedTitle === title) {
+      await onDelete(id);
+    } else if (currentTitle === title) {
+      setCurrentTitle(trimmedTitle);
       setEditingTodo(false);
     } else {
+      await onUpdateTitle(
+        { id, title, userId: USER_ID, completed },
+        trimmedTitle,
+      );
       setCurrentTitle(trimmedTitle);
-
-      try {
-        setEditingTodo(false);
-        await onUpdateTitle(
-          { id, title, userId: USER_ID, completed },
-          trimmedTitle,
-        );
-      } catch (error) {
-        setEditingTodo(true);
-      }
+      setEditingTodo(false);
     }
+
+    setIsSubmitted(false);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleUpdateTitle();
+  };
+
+  const handleBlur = () => {
+    handleUpdateTitle();
   };
 
   const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -82,7 +92,7 @@ export const TodoItem: React.FC<Props> = ({
         />
       </label>
       {editingTodo ? (
-        <form onSubmit={handleUpdateTitle} onBlur={handleUpdateTitle}>
+        <form onSubmit={handleSubmit}>
           <input
             ref={formInputRef}
             data-cy="TodoTitleField"
@@ -91,6 +101,7 @@ export const TodoItem: React.FC<Props> = ({
             placeholder="Empty todo will be deleted"
             autoFocus
             value={currentTitle}
+            onBlur={handleBlur}
             onChange={event => setCurrentTitle(event.target.value)}
             onKeyUp={handleKeyUp}
           />
